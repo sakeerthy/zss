@@ -73,6 +73,7 @@
 #include "datasetService.h"
 #include "serverStatusService.h"
 #include "rasService.h"
+#include <sys/types.h>
 
 #include "jwt.h"
 
@@ -1198,6 +1199,8 @@ int main(int argc, char **argv){
     }
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
+
+
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
@@ -1218,6 +1221,14 @@ int main(int argc, char **argv){
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Finding PID\n");
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Finding PID %ld\n",  (unsigned long) getpid());
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Finding PPID %ld\n",  (unsigned long) getppid());
+      FILE *fp;
+      fp = fopen("/u/ts6320/rocketbuild/test.txt", "w+");
+      fprintf(fp, "PID: %ld\n",(unsigned long) getpid());
+      fprintf(fp, "PPID: %ld\n",(unsigned long) getppid());
+      fclose(fp);
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
@@ -1226,6 +1237,7 @@ int main(int argc, char **argv){
       installOMVSService(server);
       installServerStatusService(server, MVD_SETTINGS, productVersion);
       installZosPasswordService(server);
+      instalPIDService(server);
       installRASService(server);
 #endif
       installLoginService(server);

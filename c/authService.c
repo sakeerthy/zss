@@ -295,6 +295,26 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
   }
 }
 
+static int getPidInfo(HttpService *service, HttpResponse *response) {
+  int returnCode = 0, reasonCode = 0;
+  HttpRequest *request = response->request;
+  
+  if (!strcmp(request->method, methodGET)) {
+    char *inPtr = request->contentBody;
+    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+    int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
+    char errBuf[JSON_ERROR_BUFFER_SIZE];
+    char responseString[RESPONSE_MESSAGE_LENGTH];
+
+    snprintf(responseString, RESPONSE_MESSAGE_LENGTH, "PID:%d,PPID:%d", (unsigned long) getpid(), (unsigned long) getppid());
+    respondWithJsonStatus(response, responseString, HTTP_STATUS_OK, "OK");
+  } else {
+    respondWithJsonStatus(response, "Method Not Allowed",
+                          HTTP_STATUS_METHOD_NOT_FOUND, "Method Not Allowed");
+    return HTTP_SERVICE_FAILED;
+  }
+}
+
 void installZosPasswordService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
@@ -302,6 +322,17 @@ void installZosPasswordService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NONE;
   httpService->runInSubtask = TRUE;
   httpService->serviceFunction = resetPassword;
+  registerHttpService(server, httpService);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+}
+
+void instalPIDService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("pid service", "/pid/**");
+  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->runInSubtask = TRUE;
+  httpService->serviceFunction = getPidInfo;
   registerHttpService(server, httpService);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
